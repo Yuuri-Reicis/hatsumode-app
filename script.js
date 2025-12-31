@@ -605,31 +605,21 @@ async function saveStill() {
     }
 
     // 少し待ってからキャプチャ
-    await new Promise(resolve => setTimeout(resolve, 200));
+    await new Promise(resolve => setTimeout(resolve, 300));
 
     try {
         const container = elements.backgroundContainer;
 
-        // html2canvasでキャプチャ（コンテナ全体）
-        const canvas = await html2canvas(container, {
-            useCORS: true,
-            allowTaint: true,
-            backgroundColor: null,
-            scale: 2,
-            logging: false,
-            imageTimeout: 0,
-            onclone: (clonedDoc) => {
-                // クローンされたDOMでセリフボックスを強制的に不透明化
-                const clonedDialogue = clonedDoc.querySelector('.dialogue-box');
-                if (clonedDialogue && clonedDialogue.classList.contains('visible')) {
-                    clonedDialogue.style.background = 'rgb(20, 15, 35)';
-                    clonedDialogue.style.backdropFilter = 'none';
-                }
+        // dom-to-imageでキャプチャ
+        const dataUrl = await domtoimage.toPng(container, {
+            quality: 1,
+            bgcolor: '#1a1520',
+            style: {
+                'transform': 'none'
             }
         });
 
         // 新しいタブで画像を開く（右クリック保存用）
-        const dataUrl = canvas.toDataURL('image/png');
         const newTab = window.open();
         if (newTab) {
             newTab.document.write(`
@@ -646,23 +636,31 @@ async function saveStill() {
         }
 
     } catch (error) {
-        console.error('スチル保存エラー:', error);
-        // フォールバック: dataURLで試す
+        console.error('dom-to-image失敗、html2canvasでフォールバック:', error);
+        // フォールバック: html2canvasで試す
         try {
             const container = elements.backgroundContainer;
             const canvas = await html2canvas(container, {
                 useCORS: true,
                 allowTaint: true,
                 backgroundColor: '#1a1520',
-                scale: 1
+                scale: 2
             });
-            const link = document.createElement('a');
-            link.download = `hatsumode_${LOCATIONS[currentLocationIndex].id}_${Date.now()}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
+            const dataUrl = canvas.toDataURL('image/png');
+            const newTab = window.open();
+            if (newTab) {
+                newTab.document.write(`
+                    <html>
+                    <head><title>スチル保存 - ${LOCATIONS[currentLocationIndex].name}</title></head>
+                    <body style="margin:0; background:#1a1520; display:flex; justify-content:center; align-items:center; min-height:100vh;">
+                        <img src="${dataUrl}" style="max-width:100%; max-height:100vh;">
+                    </body>
+                    </html>
+                `);
+            }
         } catch (fallbackError) {
             console.error('フォールバックも失敗:', fallbackError);
-            alert('保存に失敗しました。\nLive Serverなどのローカルサーバーで開いてお試しください。');
+            alert('保存に失敗しました。\nLive Serverなどのローカルサーバーで開くか、ブラウザのスクリーンショット機能をお使いください。');
         }
     } finally {
         // ナビゲーションとセリフを元に戻す
