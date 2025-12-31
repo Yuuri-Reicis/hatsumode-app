@@ -334,8 +334,8 @@ function addImage(file) {
         img.style.left = '50%';
         img.style.top = '50%';
         img.style.transform = 'translate(-50%, -50%) scale(1)';
-        img.style.maxWidth = '300px';
-        img.style.maxHeight = '400px';
+        img.style.maxWidth = '80%';
+        img.style.maxHeight = '80%';
         img.dataset.scale = '1';
         img.dataset.zIndex = placedImages.length + 1;
         img.style.zIndex = img.dataset.zIndex;
