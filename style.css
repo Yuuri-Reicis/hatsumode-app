@@ -757,8 +757,13 @@ body {
         white-space: nowrap;
     }
 
+    .app-container {
+        min-height: auto;
+        height: auto;
+    }
+
     .background-container {
-        min-height: 400px;
+        min-height: 50vh;
     }
 
     .dialogue-box {
