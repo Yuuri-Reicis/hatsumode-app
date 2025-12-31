@@ -601,7 +601,7 @@ async function saveStill() {
     // セリフボックスを完全不透明に（キャプチャ用）
     const dialogueBox = elements.dialogueBox;
     if (dialogueBox.classList.contains('visible')) {
-        dialogueBox.style.cssText += 'background: rgb(15, 10, 25) !important; backdrop-filter: none !important;';
+        dialogueBox.classList.add('capturing');
     }
 
     // 少し待ってからキャプチャ
@@ -660,8 +660,7 @@ async function saveStill() {
         // ナビゲーションとセリフを元に戻す
         const navigation = document.querySelector('.navigation');
         if (navigation) navigation.style.display = '';
-        elements.dialogueBox.style.background = '';
-        elements.dialogueBox.style.backdropFilter = '';
+        elements.dialogueBox.classList.remove('capturing');
     }
 }
 

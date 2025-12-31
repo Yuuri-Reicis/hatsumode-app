@@ -202,6 +202,12 @@ body {
     animation: dialogueFadeIn 0.3s ease;
 }
 
+/* キャプチャ用（不透明化） */
+.dialogue-box.capturing {
+    background: rgb(15, 10, 25) !important;
+    backdrop-filter: none !important;
+}
+
 @keyframes dialogueFadeIn {
     from {
         opacity: 0;
