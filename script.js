@@ -559,8 +559,8 @@ function drawOmikuji() {
     const marginTop = isMobile ? '60px' : '145px';
     const fortuneHeight = isMobile ? '80px' : '100px';
     const categoryWidth = isMobile ? '35px' : '50px';
-    const categoryNameSize = isMobile ? '0.6rem' : '1rem';
-    const categoryTextSize = isMobile ? '0.45rem' : '0.85rem';
+    const categoryNameSize = isMobile ? '0.7rem' : '1rem';
+    const categoryTextSize = isMobile ? '0.55rem' : '0.85rem';
     const rowGap = isMobile ? '1px' : '2px';
     const rowPadding = isMobile ? '0 3px' : '0 8px';
 
