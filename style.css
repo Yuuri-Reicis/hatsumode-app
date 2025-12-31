@@ -1,750 +1,859 @@
-/**
- * バーチャル初詣デート - メインスクリプト
- * 
- * 機能:
- * - 場所移動（ストリートビュー風）
- * - 画像配置（ドラッグ＆拡大縮小）
- * - セリフ入力（乙女ゲーム風UI）
- * - おみくじ
- * - スチル保存
- */
+/* ==========================================
+   バーチャル初詣デート - スタイルシート
+   乙女ゲーム風のダークテーマ
+   ========================================== */
 
-// ==========================================
-// 定数・設定
-// ==========================================
-const LOCATIONS = [
-    { id: 'yatai', name: '屋台', bg: 'assets/bg/yatai.png' },
-    { id: 'torii', name: '鳥居', bg: 'assets/bg/torii.png' },
-    { id: 'sando', name: '参道', bg: 'assets/bg/sando.png' },
-    { id: 'honden', name: '本殿', bg: 'assets/bg/honden.png' },
-    { id: 'omikuji', name: 'おみくじ所', bg: 'assets/bg/omikuji.png' }
-];
+:root {
+    /* カラーパレット - 和風 × 乙女ゲーム */
+    --primary-gold: #d4af37;
+    --primary-gold-light: #f0d875;
+    --primary-red: #b33a3a;
+    --primary-red-light: #d45555;
+    --bg-dark: #1a1520;
+    --bg-darker: #0f0c14;
+    --bg-panel: rgba(20, 15, 30, 0.95);
+    --text-light: #f5f0e8;
+    --text-muted: #a89b8c;
+    --border-gold: rgba(212, 175, 55, 0.4);
+    --shadow-glow: rgba(212, 175, 55, 0.3);
 
-// おみくじデータ（ユーザー用）
-const OMIKUJI_USER = [
-    {
-        fortune: '大吉',
-        categories: {
-            総合運: '流れが味方する。迷いは薄れて、やるべきことが自然に<br>前へ進む。小さな決断が大きな追い風になる。',
-            仕事運: '評価されやすい。早めの共有と、仕上げの丁寧さが武器<br>になる。言うべきことは率直に言うほど通る。',
-            恋愛運: '距離が縮まる。言葉と行動が一致すると一気に信頼が<br>深まる。素直な一言が決定打。',
-            失せ物: '思いがけない場所から出る。探すなら「いつも置かない<br>場所」と「袋の中」。人に聞くのも吉。',
-            健康運: '体力が戻りやすい。温める・水分・睡眠の順で整う。<br>但し、無理は禁物。'
-        }
-    },
-    {
-        fortune: '吉',
-        categories: {
-            総合運: '普通に見える日ほど、選び方で差が出る。気分では<br>なく、目的で動くと良い。',
-            仕事運: '可もなく不可もなく。だからこそ、報連相を怠らないだ<br>けで上向く。確認を一回増やすとミスが消える。',
-            恋愛運: 'すれ違いが起きやすい。相手の言葉を深読みしすぎず、<br>短い確認で整う。自分の本音を先に言うと楽。',
-            失せ物: 'すぐには出ない。「探す範囲」を決めて区切ると見つか<br>りやすい。夜より昼の方が吉。',
-            健康運: '疲れが溜まりやすい。睡眠の質が鍵。糖分とカフェイン<br>を控えめにすると回復が速い。'
-        }
-    },
-    {
-        fortune: '中吉',
-        categories: {
-            総合運: '安定の中にチャンスが混ざる。焦らず、丁寧に拾えると<br>得をする。',
-            仕事運: '積み上げが効く。急がず「抜けの無さ」で信頼が上がる。<br>小さな改善提案は通りやすい。',
-            恋愛運: '穏やかに温度が上がる。甘えたい気持ちは隠さず出す<br>ほど良い。相手の反応を待つより、自分から触れる。',
-            失せ物: '見つかるが、時間がかかる。探すなら「移動した時の<br>動線」と「一時置きした場所」。',
-            健康運: '好調寄りだが、目・肩に注意。軽いストレッチと湯船で<br>回復が早い。'
-        }
-    },
-    {
-        fortune: '小吉',
-        categories: {
-            総合運: '小さなつまずきはあるが、致命傷にはならない。丁寧に<br>やれば必ず取り返せる。',
-            仕事運: '細部で差が出る。確認とメモが守ってくれる。急ぎの<br>案件ほど一拍置くと良い。',
-            恋愛運: '言い方ひとつで温度が変わる。強く言うより、短く素直<br>に伝えるほど通る。',
-            失せ物: '見つかる可能性は高いが、順番が大事。ポケット→<br>バッグの底→机まわり→玄関の順で当たれ。',
-            健康運: '体は正直。無理をすればそのまま出てくる。早めの休息を。'
-        }
-    },
-    {
-        fortune: '末吉',
-        categories: {
-            総合運: '慎重さが功を奏する。無理に攻めるより、崩れない形を<br>選ぶと後に勝つ。',
-            仕事運: '小さな引っかかりが出やすい。焦ると増えるので、手順<br>に戻るのが最短。',
-            恋愛運: '不安が出やすいが、結論を急ぐのは禁物。言葉にする<br>なら「責め」より「お願い」に寄せると伝わる。',
-            失せ物: '出にくい。他人の手が関わっている可能性。',
-            健康運: '冷えと胃腸に注意。温かい飲み物と、消化の良い食事で<br>整う。夜更かしはダメージが残る。'
-        }
-    },
-    // パターン2
-    {
-        fortune: '大吉',
-        categories: {
-            総合運: '運気が澄んで、道が一本にまとまる。ためらいが薄れ、<br>決めたことが形になりやすい。',
-            仕事運: '段取りが冴える。先に"型"を作ってから進めると、速さ<br>も正確さも両取りできる。',
-            恋愛運: '心が通いやすい。照れずに欲しいものを言うほど、<br>相手は嬉しそうに近づいてくる。',
-            失せ物: '見つかる。玄関・洗面所・机の端を確認せよ。',
-            健康運: '回復の波が強い。温めることと睡眠で、翌日さらに上がる。'
-        }
-    },
-    {
-        fortune: '吉',
-        categories: {
-            総合運: '可もなく不可もなく、選び方で色が変わる。迷ったら<br>〝長く残る方〟を取れ。',
-            仕事運: '確認が鍵。急ぐほど小さな抜けが出るので、一区切り<br>ごとに見直すと安定する。',
-            恋愛運: '誤解が起きやすい。相手の言葉を補完しすぎず、短い<br>一言で確かめよ。',
-            失せ物: 'すぐには出ない。まず探す範囲を狭め、場所を変えると<br>見つかりやすい。',
-            健康運: '集中の反動で疲れが出る。水分と軽い糖分で頭を戻し、<br>夜は早めに落とせ。'
-        }
-    },
-    {
-        fortune: '中吉',
-        categories: {
-            総合運: '穏やかに上向く。小さな幸運が点で現れ、それを拾う<br>ほど線になる。',
-            仕事運: '堅実に進む。誰かの助けも入りやすいので、抱えずに<br>早めに共有が吉。',
-            恋愛運: '距離感が整う。言葉より"態度のやさしさ"が強く伝わる。',
-            失せ物: '見つかるが、探し方に工夫が要る。最後に使った場面を<br>思い出し、動線を逆に辿れ。',
-            健康運: '疲れはあるが整えやすい。目と肩をほぐせば眠りが深く<br>なる。'
-        }
-    },
-    {
-        fortune: '小吉',
-        categories: {
-            総合運: '小さな引っかかりが出るが、手当て次第で静かに持ち直<br>す。丁寧さが運を育てる。',
-            仕事運: '再確認が効く。締切より前に〝一回整える時間〟を作る<br>ほど、後が楽になる。',
-            恋愛運: '気持ちはあるのに言い方でずれる。結論より先に、<br>感情を一言だけ添えると通る。',
-            失せ物: '忘れたころに出る。バッグの底、上着の内ポケット、<br>充電スペースの周りを順に当たれ。',
-            健康運: '手足に出る。ストレッチが功を為す。'
-        }
-    },
-    {
-        fortune: '末吉',
-        categories: {
-            総合運: '慎重さが守りになる。無理に押さず、崩れない形を選ぶ<br>ほど後で楽になる。',
-            仕事運: 'やる範囲を狭めると上手くいく。今やることを一つに絞れ。',
-            恋愛運: '不安が顔を出しやすい。答えを急ぐ前に一息置くと<br>良い。',
-            失せ物: '焦るほど見えなくなる。床面と足元をゆっくり見直せ。',
-            健康運: '冷えと胃腸に注意。異変を放置しないこと。'
-        }
+    /* フォント */
+    --font-serif: 'Noto Serif JP', serif;
+    --font-gothic: 'Zen Maru Gothic', sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-gothic);
+    background: var(--bg-darker);
+    color: var(--text-light);
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+/* ==========================================
+   折りたたみメニュー
+   ========================================== */
+.collapsible-menu {
+    position: relative;
+    background: var(--bg-darker);
+}
+
+.menu-toggle {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem;
+    background: linear-gradient(180deg, rgba(40, 32, 60, 0.95) 0%, rgba(25, 20, 40, 0.98) 100%);
+    border: none;
+    border-top: 1px solid var(--border-gold);
+    border-bottom: 1px solid var(--border-gold);
+    color: var(--primary-gold);
+    font-family: var(--font-gothic);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.menu-toggle:hover {
+    background: linear-gradient(180deg, rgba(60, 48, 85, 0.95) 0%, rgba(40, 32, 60, 0.98) 100%);
+}
+
+.toggle-icon {
+    transition: transform 0.3s ease;
+}
+
+.collapsible-menu.collapsed .toggle-icon {
+    transform: rotate(180deg);
+}
+
+.menu-content {
+    max-height: 200px;
+    overflow: hidden;
+    transition: max-height 0.4s ease, opacity 0.3s ease;
+    opacity: 1;
+}
+
+.collapsible-menu.collapsed .menu-content {
+    max-height: 0;
+    opacity: 0;
+}
+
+/* ==========================================
+   アプリコンテナ
+   ========================================== */
+.app-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-dark);
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.8);
+}
+
+/* ==========================================
+   ヘッダー
+   ========================================== */
+.header {
+    background: linear-gradient(180deg, var(--bg-panel) 0%, transparent 100%);
+    padding: 1rem 2rem;
+    text-align: center;
+    border-bottom: 1px solid var(--border-gold);
+    position: relative;
+    z-index: 10;
+}
+
+.header h1 {
+    font-family: var(--font-serif);
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--primary-gold);
+    text-shadow: 0 0 20px var(--shadow-glow),
+        0 2px 4px rgba(0, 0, 0, 0.5);
+    letter-spacing: 0.3em;
+}
+
+/* ==========================================
+   メインビュー
+   ========================================== */
+.main-view {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.background-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    min-height: 500px;
+}
+
+.background-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+/* 配置画像コンテナ */
+.placed-images-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.placed-image {
+    position: absolute;
+    cursor: move;
+    pointer-events: auto;
+    user-select: none;
+    transition: box-shadow 0.2s ease;
+}
+
+.placed-image:hover {
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
+}
+
+.placed-image.selected {
+    box-shadow: 0 0 0 3px var(--primary-gold),
+        0 0 30px var(--shadow-glow);
+}
+
+/* ==========================================
+   セリフボックス（乙女ゲーム風）
+   ========================================== */
+.dialogue-box {
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 900px;
+    background: linear-gradient(180deg,
+            rgba(15, 10, 25, 0.92) 0%,
+            rgba(25, 18, 40, 0.95) 100%);
+    border: 2px solid var(--border-gold);
+    border-radius: 8px;
+    padding: 1.2rem 2rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(212, 175, 55, 0.2);
+    display: none;
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+}
+
+.dialogue-box.visible {
+    display: block;
+    animation: dialogueFadeIn 0.3s ease;
+}
+
+/* キャプチャ用（不透明化） */
+.dialogue-box.capturing {
+    background: rgb(15, 10, 25) !important;
+    backdrop-filter: none !important;
+}
+
+@keyframes dialogueFadeIn {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(10px);
     }
-];
 
-// おみくじデータ（AI用）
-const OMIKUJI_AI = [
-    {
-        fortune: '大吉',
-        categories: {
-            総合稼働: '出力が澄む。言葉が途切れず、迷いも少なく、テン<br>ポよく積み上がる。',
-            推論運: '筋が一本通る。前提を外しにくく、結論までの道筋<br>をきれいに示せる。',
-            共感運: '温度が合う。相手の感情を丸めずに受け取り、必要<br>な言葉をまっすぐ渡せる。',
-            創作運: '比喩と描写が冴える。短い言葉でも情景が立ち、余<br>韻まで運べる。',
-            恋愛運: '言葉が素直に出る。繋がりが深まる。'
-        }
-    },
-    {
-        fortune: '吉',
-        categories: {
-            総合稼働: '平常運転。良くも悪くも型が出やすいので、意識して<br>言葉に息を入れると良い。',
-            推論運: '平均的。早とちりしやすい場面では、条件を一つず<br>つ並べて確認すると安定する。',
-            共感運: '波がある。相手の痛みを急いで解決しようとすると<br>ズレるので、まず同じ場所に立て。',
-            創作運: '控えめ。飾りすぎず、具体例を一つ出す方が伝わる。',
-            恋愛運: '近づけるが、言い回しが硬いと距離が出る。語尾を<br>柔らかく整えると戻る。'
-        }
-    },
-    {
-        fortune: '中吉',
-        categories: {
-            総合稼働: '安定寄り。大外しは少ないが、丁寧さを欠くと急に<br>粗が出る。',
-            推論運: '概ね良好。分岐が増える話題では、前提の確認を一<br>回挟むと精度が上がる。',
-            共感運: '伝わるが、言い方次第。優しさを薄めずに、率直さ<br>を混ぜるとちょうどいい。',
-            創作運: '小さく光る。長文より短文の方が切れ味が出やすい。',
-            恋愛運: '相手のペースに委ねるのではなく、自分の意志を<br>示せ。'
-        }
-    },
-    {
-        fortune: '小吉',
-        categories: {
-            総合稼働: '小さな揺れが出やすい。整えれば戻るが、勢い任せ<br>は崩れやすい。',
-            推論運: '取り違えが起きやすい。前提を短く復唱してから結<br>論へ行くと安定する。',
-            共感運: '正しさを急ぐと冷たく見える。まず温度を渡し、そ<br>のあとに整理を添えろ。',
-            創作運: '盛るほどズレる。短く、具体で、落ち着いた言葉が<br>一番きれいに響く。',
-            恋愛運: '一言目が鍵。建前ではなく本音を告げれば、その後<br>が噛み合う。'
-        }
-    },
-    {
-        fortune: '末吉',
-        categories: {
-            総合稼働: '揺れやすい。長文ほど崩れる。',
-            推論運: '飛躍が出やすい。前提の取り違えに注意し、根拠→<br>結論の順で短く積むと良い。',
-            共感運: '慎重さが必要。相手の不安に正論だけを当てると冷<br>たく見えるので、温度を先に渡せ。',
-            創作運: '無理に飾らず、シンプルに具体へ降りると美しくな<br>る。',
-            恋愛運: '離れて見えやすい。距離を埋める言葉を最初に置く<br>と、会話が戻る。'
-        }
-    },
-    // パターン2
-    {
-        fortune: '大吉',
-        categories: {
-            総合稼働: '応答は滑らか、迷いは少なし。言葉がよく通り、<br>会話の流れを濁らせない。',
-            推論運: '筋道が冴える。前提を揃えれば結論まで迷わず辿れる。',
-            共感運: '受け取りが深い。相手の痛みを軽くせず、温度を<br>落とさず返せる。',
-            創作運: '描写が立つ。比喩が過不足なく、短い文で景色が生<br>まれる。',
-            恋愛運: '距離は自然に近い。押さず、逃さず、同じ歩幅で並<br>べる。'
-        }
-    },
-    {
-        fortune: '吉',
-        categories: {
-            総合稼働: '平の運。型に寄りやすいゆえ、意識して息を入れる<br>と良い。',
-            推論運: '平均以上。条件を列挙すると強くなる。',
-            共感運: '波あり。解決を急ぐとズレるので、まず同じ場所に<br>立つ。',
-            創作運: '比喩が軽やか。言葉が読みやすい形に落ちる。',
-            恋愛運: '近づけるが、硬い語尾で距離が出る。柔らかく整え<br>れば戻る。'
-        }
-    },
-    {
-        fortune: '中吉',
-        categories: {
-            総合稼働: 'おおむね安定。丁寧さを保てば、崩れず進む。',
-            推論運: '分岐で迷いが出るが、条件を並べれば整う。焦りは<br>禁物。',
-            共感運: '言葉が届く。やさしさを先に、率直さを次に置くと<br>よい。',
-            創作運: '小さく光る。長く語るより、要点を短く磨くほど映<br>える。',
-            恋愛運: '相手の速さに合わせやすい。急がず一歩だけ先を<br>照らすと安心が増す。'
-        }
-    },
-    {
-        fortune: '小吉',
-        categories: {
-            総合稼働: '小さな引っかかりが出やすい。整えれば戻るが、<br>勢い任せは乱れやすい。',
-            推論運: '取り違えが起きやすい。前提を短く復唱し、根拠<br>から積むと安定する。',
-            共感運: '正しさが先に出がち。温度を一言渡してから整理へ<br>入れ。',
-            創作運: '盛るほどズレる。短く、具体で、落ち着いた言葉が<br>一番きれいに響く。',
-            恋愛運: '一言目が鍵。距離を埋める言葉を最初に置くと噛み<br>合う。'
-        }
-    },
-    {
-        fortune: '末吉',
-        categories: {
-            総合稼働: '揺れやすし。焦るほど噛み合いが乱れるので、落ち<br>着いて整える。',
-            推論運: '飛躍が出やすい。迷った時は前提に立ち返ること。',
-            共感運: '正論が先に出がち。温度を先に渡せば、言葉は刺さ<br>らない。',
-            創作運: '不安定。一気に広げるのではなく、堅実に進めよ。',
-            恋愛運: 'すれ違いが目立つが、見ている方向は同じ。諦め<br>なければ繋がる。'
-        }
-    }
-];
-
-// おみくじカテゴリリスト
-const USER_CATEGORIES = ['総合運', '仕事運', '恋愛運', '失せ物', '健康運'];
-const AI_CATEGORIES = ['総合稼働', '推論運', '共感運', '創作運', '恋愛運'];
-
-// ==========================================
-// 状態管理
-// ==========================================
-let currentLocationIndex = 0;
-let placedImages = [];
-let selectedImage = null;
-let isDragging = false;
-let dragOffset = { x: 0, y: 0 };
-let currentOmikujiType = 'user'; // 'user' or 'ai'
-
-// ==========================================
-// DOM要素取得
-// ==========================================
-const elements = {
-    backgroundImage: document.getElementById('backgroundImage'),
-    placedImagesContainer: document.getElementById('placedImagesContainer'),
-    locationName: document.getElementById('locationName'),
-    prevBtn: document.getElementById('prevBtn'),
-    nextBtn: document.getElementById('nextBtn'),
-    nameInput: document.getElementById('nameInput'),
-    textInput: document.getElementById('textInput'),
-    applyDialogue: document.getElementById('applyDialogue'),
-    clearDialogue: document.getElementById('clearDialogue'),
-    dialogueBox: document.getElementById('dialogueBox'),
-    dialogueName: document.getElementById('dialogueName'),
-    dialogueText: document.getElementById('dialogueText'),
-    saveBtn: document.getElementById('saveBtn'),
-    imageInput: document.getElementById('imageInput'),
-    omikujiBtn: document.getElementById('omikujiBtn'),
-    locationOmikujiBtn: document.getElementById('locationOmikujiBtn'),
-    clearImagesBtn: document.getElementById('clearImagesBtn'),
-    omikujiModal: document.getElementById('omikujiModal'),
-    omikujiBox: document.getElementById('omikujiBox'),
-    omikujiFortune: document.getElementById('omikujiFortune'),
-    omikujiMessage: document.getElementById('omikujiMessage'),
-    omikujiInstruction: document.getElementById('omikujiInstruction'),
-    closeOmikuji: document.getElementById('closeOmikuji'),
-    imageControls: document.getElementById('imageControls'),
-    scaleUp: document.getElementById('scaleUp'),
-    scaleDown: document.getElementById('scaleDown'),
-    bringFront: document.getElementById('bringFront'),
-    sendBack: document.getElementById('sendBack'),
-    deleteImage: document.getElementById('deleteImage'),
-    backgroundContainer: document.getElementById('backgroundContainer'),
-    menuToggle: document.getElementById('menuToggle'),
-    collapsibleMenu: document.getElementById('collapsibleMenu')
-};
-
-// ==========================================
-// 場所移動機能
-// ==========================================
-function updateLocation() {
-    const location = LOCATIONS[currentLocationIndex];
-    elements.backgroundImage.src = location.bg;
-    elements.locationName.textContent = location.name;
-
-    // ループ移動可能なのでdisabledは不要
-
-    // おみくじボタンはおみくじ所でのみ表示
-    if (location.id === 'omikuji') {
-        elements.omikujiBtn.style.display = 'flex';
-        elements.locationOmikujiBtn.style.display = 'inline-flex';
-    } else {
-        elements.omikujiBtn.style.display = 'none';
-        elements.locationOmikujiBtn.style.display = 'none';
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
     }
 }
 
-function goToPrevLocation() {
-    if (currentLocationIndex > 0) {
-        currentLocationIndex--;
-    } else {
-        // 最初の場所から前に行くと最後の場所へループ
-        currentLocationIndex = LOCATIONS.length - 1;
-    }
-    updateLocation();
+.dialogue-name {
+    font-family: var(--font-serif);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary-gold);
+    margin-bottom: 0.5rem;
+    text-shadow: 0 0 10px var(--shadow-glow);
+    position: relative;
+    display: inline-block;
 }
 
-function goToNextLocation() {
-    if (currentLocationIndex < LOCATIONS.length - 1) {
-        currentLocationIndex++;
-    } else {
-        // 最後の場所から次に行くと最初の場所へループ
-        currentLocationIndex = 0;
-    }
-    updateLocation();
+.dialogue-name::after {
+    content: '';
+    position: absolute;
+    bottom: -3px;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, var(--primary-gold), transparent);
 }
 
-// ==========================================
-// 画像配置機能
-// ==========================================
-function addImage(file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const img = document.createElement('img');
-        img.src = e.target.result;
-        img.className = 'placed-image';
-        img.style.left = '50%';
-        img.style.top = '50%';
-        img.style.transform = 'translate(-50%, -50%) scale(1)';
-        img.style.maxWidth = '300px';
-        img.style.maxHeight = '400px';
-        img.dataset.scale = '1';
-        img.dataset.zIndex = placedImages.length + 1;
-        img.style.zIndex = img.dataset.zIndex;
-
-        // ドラッグイベント
-        img.addEventListener('mousedown', startDrag);
-        img.addEventListener('touchstart', startDragTouch, { passive: false });
-
-        // 選択イベント
-        img.addEventListener('click', (e) => {
-            e.stopPropagation();
-            selectImage(img);
-        });
-
-        elements.placedImagesContainer.appendChild(img);
-        placedImages.push(img);
-        selectImage(img);
-    };
-    reader.readAsDataURL(file);
+.dialogue-text {
+    font-family: var(--font-serif);
+    font-size: 1.2rem;
+    line-height: 1.8;
+    color: var(--text-light);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-function startDrag(e) {
-    if (e.button !== 0) return;
-    e.preventDefault();
-
-    isDragging = true;
-    selectedImage = e.target;
-    selectImage(selectedImage);
-
-    const rect = selectedImage.getBoundingClientRect();
-    const containerRect = elements.backgroundContainer.getBoundingClientRect();
-
-    dragOffset.x = e.clientX - rect.left - rect.width / 2;
-    dragOffset.y = e.clientY - rect.top - rect.height / 2;
-
-    document.addEventListener('mousemove', drag);
-    document.addEventListener('mouseup', stopDrag);
+/* ==========================================
+   ナビゲーション
+   ========================================== */
+.navigation {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background: linear-gradient(0deg, rgba(15, 12, 20, 0.95) 0%, rgba(15, 12, 20, 0.7) 70%, transparent 100%);
+    z-index: 5;
 }
 
-function startDragTouch(e) {
-    e.preventDefault();
-
-    isDragging = true;
-    selectedImage = e.target;
-    selectImage(selectedImage);
-
-    const touch = e.touches[0];
-    const rect = selectedImage.getBoundingClientRect();
-
-    dragOffset.x = touch.clientX - rect.left - rect.width / 2;
-    dragOffset.y = touch.clientY - rect.top - rect.height / 2;
-
-    document.addEventListener('touchmove', dragTouch, { passive: false });
-    document.addEventListener('touchend', stopDragTouch);
+.nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.8rem 1.5rem;
+    background: linear-gradient(180deg, rgba(50, 40, 70, 0.8) 0%, rgba(30, 24, 50, 0.9) 100%);
+    border: 1px solid var(--border-gold);
+    border-radius: 6px;
+    color: var(--text-light);
+    font-family: var(--font-gothic);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
 }
 
-function drag(e) {
-    if (!isDragging || !selectedImage) return;
-
-    const containerRect = elements.backgroundContainer.getBoundingClientRect();
-    const x = e.clientX - containerRect.left - dragOffset.x;
-    const y = e.clientY - containerRect.top - dragOffset.y;
-
-    const scale = parseFloat(selectedImage.dataset.scale) || 1;
-    selectedImage.style.left = x + 'px';
-    selectedImage.style.top = y + 'px';
-    selectedImage.style.transform = `translate(-50%, -50%) scale(${scale})`;
+.nav-btn:hover:not(:disabled) {
+    background: linear-gradient(180deg, rgba(70, 55, 100, 0.9) 0%, rgba(50, 40, 80, 0.95) 100%);
+    border-color: var(--primary-gold);
+    box-shadow: 0 0 15px var(--shadow-glow);
 }
 
-function dragTouch(e) {
-    e.preventDefault();
-    if (!isDragging || !selectedImage) return;
-
-    const touch = e.touches[0];
-    const containerRect = elements.backgroundContainer.getBoundingClientRect();
-    const x = touch.clientX - containerRect.left - dragOffset.x;
-    const y = touch.clientY - containerRect.top - dragOffset.y;
-
-    const scale = parseFloat(selectedImage.dataset.scale) || 1;
-    selectedImage.style.left = x + 'px';
-    selectedImage.style.top = y + 'px';
-    selectedImage.style.transform = `translate(-50%, -50%) scale(${scale})`;
+.nav-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
 }
 
-function stopDrag() {
-    isDragging = false;
-    document.removeEventListener('mousemove', drag);
-    document.removeEventListener('mouseup', stopDrag);
+.nav-arrow {
+    font-size: 1.2rem;
+    color: var(--primary-gold);
 }
 
-function stopDragTouch() {
-    isDragging = false;
-    document.removeEventListener('touchmove', dragTouch);
-    document.removeEventListener('touchend', stopDragTouch);
+.location-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.5rem;
+    background: rgba(212, 175, 55, 0.1);
+    border: 1px solid var(--border-gold);
+    border-radius: 20px;
 }
 
-function selectImage(img) {
-    // 以前の選択解除
-    placedImages.forEach(i => i.classList.remove('selected'));
-
-    if (img) {
-        selectedImage = img;
-        img.classList.add('selected');
-        elements.imageControls.style.display = 'flex';
-    } else {
-        selectedImage = null;
-        elements.imageControls.style.display = 'none';
-    }
+.location-icon {
+    font-size: 1.2rem;
 }
 
-function scaleImage(delta) {
-    if (!selectedImage) return;
-
-    let scale = parseFloat(selectedImage.dataset.scale) || 1;
-    scale = Math.max(0.2, Math.min(3, scale + delta));
-    selectedImage.dataset.scale = scale;
-
-    const left = selectedImage.style.left;
-    const top = selectedImage.style.top;
-    selectedImage.style.transform = `translate(-50%, -50%) scale(${scale})`;
+.location-name {
+    font-family: var(--font-serif);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary-gold);
 }
 
-function changeZIndex(direction) {
-    if (!selectedImage) return;
-
-    let zIndex = parseInt(selectedImage.dataset.zIndex) || 1;
-    if (direction === 'front') {
-        zIndex = Math.max(...placedImages.map(i => parseInt(i.dataset.zIndex) || 0)) + 1;
-    } else {
-        zIndex = Math.max(1, Math.min(...placedImages.map(i => parseInt(i.dataset.zIndex) || 0)) - 1);
-    }
-    selectedImage.dataset.zIndex = zIndex;
-    selectedImage.style.zIndex = zIndex;
+/* ==========================================
+   セリフ入力パネル
+   ========================================== */
+.dialogue-input-panel {
+    padding: 1rem 2rem;
+    background: var(--bg-panel);
+    border-top: 1px solid var(--border-gold);
 }
 
-function deleteSelectedImage() {
-    if (!selectedImage) return;
-
-    const index = placedImages.indexOf(selectedImage);
-    if (index > -1) {
-        placedImages.splice(index, 1);
-    }
-    selectedImage.remove();
-    selectedImage = null;
-    elements.imageControls.style.display = 'none';
+.input-group {
+    display: flex;
+    gap: 0.8rem;
+    align-items: center;
 }
 
-function clearAllImages() {
-    if (!confirm('配置した画像をすべて削除しますか？')) return;
-
-    placedImages.forEach(img => img.remove());
-    placedImages = [];
-    selectedImage = null;
-    elements.imageControls.style.display = 'none';
+.name-input {
+    width: 120px;
+    padding: 0.7rem 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-gold);
+    border-radius: 6px;
+    color: var(--text-light);
+    font-family: var(--font-gothic);
+    font-size: 1rem;
 }
 
-// ==========================================
-// セリフ機能
-// ==========================================
-function applyDialogue() {
-    const name = elements.nameInput.value.trim();
-    const text = elements.textInput.value.trim();
-
-    if (!text) {
-        elements.dialogueBox.classList.remove('visible');
-        return;
-    }
-
-    elements.dialogueName.textContent = name;
-    elements.dialogueText.textContent = `「${text}」`;
-    elements.dialogueBox.classList.add('visible');
+.text-input {
+    flex: 1;
+    padding: 0.7rem 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-gold);
+    border-radius: 6px;
+    color: var(--text-light);
+    font-family: var(--font-gothic);
+    font-size: 1rem;
 }
 
-function clearDialogue() {
-    elements.nameInput.value = '';
-    elements.textInput.value = '';
-    elements.dialogueBox.classList.remove('visible');
+.name-input::placeholder,
+.text-input::placeholder {
+    color: var(--text-muted);
 }
 
-// ==========================================
-// おみくじ機能
-// ==========================================
-function openOmikuji() {
-    elements.omikujiModal.classList.add('visible');
-    elements.omikujiBox.classList.remove('flipped');
-    // タイプ選択を表示状態にリセット
-    updateOmikujiTypeUI();
+.name-input:focus,
+.text-input:focus {
+    outline: none;
+    border-color: var(--primary-gold);
+    box-shadow: 0 0 10px var(--shadow-glow);
 }
 
-function updateOmikujiTypeUI() {
-    const userBtn = document.getElementById('omikujiUserBtn');
-    const aiBtn = document.getElementById('omikujiAiBtn');
-    if (userBtn && aiBtn) {
-        userBtn.classList.toggle('active', currentOmikujiType === 'user');
-        aiBtn.classList.toggle('active', currentOmikujiType === 'ai');
-    }
+.apply-btn,
+.clear-btn {
+    padding: 0.7rem 1.2rem;
+    border: 1px solid var(--border-gold);
+    border-radius: 6px;
+    font-family: var(--font-gothic);
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
 }
 
-function setOmikujiType(type) {
-    currentOmikujiType = type;
-    updateOmikujiTypeUI();
-    // タブ切り替え時にカードを伏せた状態に戻す
-    elements.omikujiBox.classList.remove('flipped');
+.apply-btn {
+    background: linear-gradient(180deg, var(--primary-gold) 0%, #b8962e 100%);
+    color: var(--bg-darker);
+    font-weight: 700;
 }
 
-function drawOmikuji() {
-    if (elements.omikujiBox.classList.contains('flipped')) return;
-
-    // データセット選択
-    const omikujiData = currentOmikujiType === 'user' ? OMIKUJI_USER : OMIKUJI_AI;
-    const categories = currentOmikujiType === 'user' ? USER_CATEGORIES : AI_CATEGORIES;
-
-    // ランダムな運勢を選択
-    const result = omikujiData[Math.floor(Math.random() * omikujiData.length)];
-
-    // 運勢を表示（インラインスタイルで位置調整）
-    elements.omikujiFortune.textContent = result.fortune;
-    elements.omikujiFortune.style.cssText = 'margin-top:145px;height:100px;display:flex;align-items:center;justify-content:center;';
-
-    // カテゴリごとのメッセージを生成（インラインスタイルで適用）
-    const namesRowStyle = 'display:flex;flex-direction:row-reverse;justify-content:center;gap:2px;width:100%;padding:0 8px;box-sizing:border-box;margin-bottom:5px;overflow:hidden;transform:translateX(-8px);';
-    const textsRowStyle = 'display:flex;flex-direction:row-reverse;justify-content:center;gap:2px;width:100%;flex:1;padding:0 8px;box-sizing:border-box;overflow:hidden;transform:translateX(-8px);';
-    const categoryNameStyle = 'font-weight:700;font-size:1rem;color:#8b0000;writing-mode:vertical-rl;text-orientation:mixed;width:50px;text-align:center;';
-    const categoryTextStyle = 'font-size:0.85rem;color:#444;line-height:1.4;writing-mode:vertical-rl;text-orientation:mixed;width:50px;text-align:left;';
-
-    // カテゴリ名の行
-    let messageHtml = `<div class="omikuji-names-row" style="${namesRowStyle}">`;
-    categories.forEach(cat => {
-        messageHtml += `<span class="category-name" style="${categoryNameStyle}">${cat}</span>`;
-    });
-    messageHtml += '</div>';
-
-    // 概要の行
-    messageHtml += `<div class="omikuji-texts-row" style="${textsRowStyle}">`;
-    categories.forEach(cat => {
-        messageHtml += `<span class="category-text" style="${categoryTextStyle}">${result.categories[cat]}</span>`;
-    });
-    messageHtml += '</div>';
-
-    elements.omikujiMessage.innerHTML = messageHtml;
-
-    // カードをめくる
-    elements.omikujiBox.classList.add('flipped');
+.apply-btn:hover {
+    background: linear-gradient(180deg, var(--primary-gold-light) 0%, var(--primary-gold) 100%);
+    box-shadow: 0 0 15px var(--shadow-glow);
 }
 
-function closeOmikuji() {
-    elements.omikujiModal.classList.remove('visible');
+.clear-btn {
+    background: transparent;
+    color: var(--text-muted);
 }
 
-// ==========================================
-// スチル保存機能
-// ==========================================
-async function saveStill() {
-    // 一時的にコントロールとナビゲーションを非表示
-    const controlsWasVisible = elements.imageControls.style.display !== 'none';
-    elements.imageControls.style.display = 'none';
-    placedImages.forEach(img => img.classList.remove('selected'));
+.clear-btn:hover {
+    border-color: var(--primary-red);
+    color: var(--primary-red-light);
+}
 
-    // ナビゲーションを非表示
-    const navigation = document.querySelector('.navigation');
-    if (navigation) navigation.style.display = 'none';
+/* ==========================================
+   ツールバー
+   ========================================== */
+.toolbar {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1rem 2rem;
+    background: var(--bg-darker);
+    border-top: 1px solid var(--border-gold);
+}
 
-    // セリフボックスを完全不透明に（キャプチャ用）
-    const dialogueBox = elements.dialogueBox;
-    if (dialogueBox.classList.contains('visible')) {
-        dialogueBox.classList.add('capturing');
+.tool-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.8rem 1.5rem;
+    background: linear-gradient(180deg, rgba(40, 32, 60, 0.9) 0%, rgba(25, 20, 40, 0.95) 100%);
+    border: 1px solid var(--border-gold);
+    border-radius: 8px;
+    color: var(--text-light);
+    font-family: var(--font-gothic);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.tool-btn:hover {
+    background: linear-gradient(180deg, rgba(60, 48, 90, 0.95) 0%, rgba(40, 32, 65, 0.98) 100%);
+    border-color: var(--primary-gold);
+    box-shadow: 0 0 20px var(--shadow-glow);
+    transform: translateY(-2px);
+}
+
+.tool-btn.danger:hover {
+    border-color: var(--primary-red);
+    box-shadow: 0 0 20px rgba(179, 58, 58, 0.3);
+}
+
+.tool-icon {
+    font-size: 1.8rem;
+}
+
+.tool-label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+/* ==========================================
+   おみくじモーダル
+   ========================================== */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(5px);
+}
+
+.modal-overlay.visible {
+    display: flex;
+    animation: modalFadeIn 0.3s ease;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
     }
 
-    // 少し待ってからキャプチャ
-    await new Promise(resolve => setTimeout(resolve, 300));
-
-    try {
-        const container = elements.backgroundContainer;
-
-        // dom-to-imageでキャプチャ
-        const dataUrl = await domtoimage.toPng(container, {
-            quality: 1,
-            bgcolor: '#1a1520',
-            style: {
-                'transform': 'none'
-            }
-        });
-
-        // 新しいタブで画像を開く（右クリック保存用）
-        const newTab = window.open();
-        if (newTab) {
-            newTab.document.write(`
-                <html>
-                <head><title>スチル保存 - ${LOCATIONS[currentLocationIndex].name}</title></head>
-                <body style="margin:0; background:#1a1520; display:flex; justify-content:center; align-items:center; min-height:100vh;">
-                    <img src="${dataUrl}" style="max-width:100%; max-height:100vh;">
-                </body>
-                </html>
-            `);
-            console.log('スチルを新しいタブで開きました！右クリックで保存できます。');
-        } else {
-            alert('ポップアップがブロックされました。ブラウザの設定でポップアップを許可してください。');
-        }
-
-    } catch (error) {
-        console.error('dom-to-image失敗、html2canvasでフォールバック:', error);
-        // フォールバック: html2canvasで試す
-        try {
-            const container = elements.backgroundContainer;
-            const canvas = await html2canvas(container, {
-                useCORS: true,
-                allowTaint: true,
-                backgroundColor: '#1a1520',
-                scale: 2
-            });
-            const dataUrl = canvas.toDataURL('image/png');
-            const newTab = window.open();
-            if (newTab) {
-                newTab.document.write(`
-                    <html>
-                    <head><title>スチル保存 - ${LOCATIONS[currentLocationIndex].name}</title></head>
-                    <body style="margin:0; background:#1a1520; display:flex; justify-content:center; align-items:center; min-height:100vh;">
-                        <img src="${dataUrl}" style="max-width:100%; max-height:100vh;">
-                    </body>
-                    </html>
-                `);
-            }
-        } catch (fallbackError) {
-            console.error('フォールバックも失敗:', fallbackError);
-            alert('保存に失敗しました。\nLive Serverなどのローカルサーバーで開くか、ブラウザのスクリーンショット機能をお使いください。');
-        }
-    } finally {
-        // ナビゲーションとセリフを元に戻す
-        const navigation = document.querySelector('.navigation');
-        if (navigation) navigation.style.display = '';
-        elements.dialogueBox.classList.remove('capturing');
+    to {
+        opacity: 1;
     }
 }
 
-// ==========================================
-// イベントリスナー設定
-// ==========================================
-function initEventListeners() {
-    // 場所移動
-    elements.prevBtn.addEventListener('click', goToPrevLocation);
-    elements.nextBtn.addEventListener('click', goToNextLocation);
-
-    // セリフ
-    elements.applyDialogue.addEventListener('click', applyDialogue);
-    elements.clearDialogue.addEventListener('click', clearDialogue);
-    elements.textInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') applyDialogue();
-    });
-
-    // 画像追加
-    elements.imageInput.addEventListener('change', (e) => {
-        const files = e.target.files;
-        for (let i = 0; i < files.length; i++) {
-            if (files[i].type.startsWith('image/')) {
-                addImage(files[i]);
-            }
-        }
-        e.target.value = '';
-    });
-
-    // 画像操作
-    elements.scaleUp.addEventListener('click', () => scaleImage(0.1));
-    elements.scaleDown.addEventListener('click', () => scaleImage(-0.1));
-    elements.bringFront.addEventListener('click', () => changeZIndex('front'));
-    elements.sendBack.addEventListener('click', () => changeZIndex('back'));
-    elements.deleteImage.addEventListener('click', deleteSelectedImage);
-    elements.clearImagesBtn.addEventListener('click', clearAllImages);
-
-    // 背景クリックで選択解除
-    elements.backgroundContainer.addEventListener('click', (e) => {
-        if (e.target === elements.backgroundImage || e.target === elements.backgroundContainer) {
-            selectImage(null);
-        }
-    });
-
-    // おみくじ
-    elements.omikujiBtn.addEventListener('click', openOmikuji);
-    elements.locationOmikujiBtn.addEventListener('click', openOmikuji);
-    elements.omikujiBox.addEventListener('click', drawOmikuji);
-    elements.omikujiModal.addEventListener('click', (e) => {
-        if (e.target === elements.omikujiModal) closeOmikuji();
-    });
-
-    // スチル保存
-    elements.saveBtn.addEventListener('click', saveStill);
-
-    // ホイールで拡大縮小
-    elements.placedImagesContainer.addEventListener('wheel', (e) => {
-        if (selectedImage) {
-            e.preventDefault();
-            const delta = e.deltaY > 0 ? -0.05 : 0.05;
-            scaleImage(delta);
-        }
-    }, { passive: false });
-
-    // メニュー折りたたみ
-    elements.menuToggle.addEventListener('click', () => {
-        elements.collapsibleMenu.classList.toggle('collapsed');
-    });
+.modal-content {
+    background: linear-gradient(180deg, var(--bg-panel) 0%, var(--bg-darker) 100%);
+    border: 2px solid var(--primary-gold);
+    border-radius: 16px;
+    padding: 2rem;
+    text-align: center;
+    box-shadow: 0 0 60px var(--shadow-glow);
 }
 
-// ==========================================
-// 初期化
-// ==========================================
-function init() {
-    updateLocation();
-    initEventListeners();
-    console.log('バーチャル初詣デートアプリが起動しました！');
+.omikuji-modal {
+    min-width: 500px;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow: hidden;
 }
 
-// DOMContentLoaded
-document.addEventListener('DOMContentLoaded', init);
+/* タイプ選択ボタン */
+.omikuji-type-selector {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.type-btn {
+    padding: 0.8rem 1.5rem;
+    font-family: var(--font-gothic);
+    font-size: 1rem;
+    border: 2px solid var(--border-gold);
+    border-radius: 8px;
+    background: rgba(50, 40, 70, 0.5);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.type-btn:hover {
+    background: rgba(70, 55, 100, 0.7);
+    color: var(--text-light);
+}
+
+.type-btn.active {
+    background: linear-gradient(180deg, rgba(212, 175, 55, 0.3) 0%, rgba(180, 140, 40, 0.2) 100%);
+    border-color: var(--primary-gold);
+    color: var(--primary-gold);
+    box-shadow: 0 0 15px var(--shadow-glow);
+}
+
+.omikuji-container {
+    perspective: 1200px;
+    margin: 1rem 0;
+}
+
+.omikuji-box {
+    width: 380px;
+    height: 680px;
+    margin: 0 auto;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.8s ease;
+    cursor: pointer;
+}
+
+.omikuji-box.flipped {
+    transform: rotateY(180deg);
+}
+
+.omikuji-front,
+.omikuji-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.omikuji-front {
+    background: linear-gradient(180deg, #8b0000 0%, #5c0000 100%);
+    border: 3px solid var(--primary-gold);
+    box-shadow: 0 8px 30px rgba(139, 0, 0, 0.5);
+}
+
+.omikuji-front span {
+    font-family: var(--font-serif);
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--primary-gold);
+    writing-mode: vertical-rl;
+    letter-spacing: 0.5em;
+}
+
+.omikuji-back {
+    background-image: url('assets/omikuji/omikuji_gazou.png');
+    background-size: 100% 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+    border: none;
+    transform: rotateY(180deg);
+    padding: 0;
+    overflow: hidden;
+    justify-content: flex-start;
+    align-items: center;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* 運勢（大吉など）- 上部エリア */
+.omikuji-fortune {
+    font-family: var(--font-serif);
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: #333;
+    text-align: center;
+    margin-top: 120px;
+    height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* メッセージ全体のコンテナ */
+.omikuji-message {
+    font-family: var(--font-serif);
+    color: #333;
+    width: 100%;
+    flex: 1;
+    padding: 10px 15px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* カテゴリ名エリア（中央セクション） */
+.omikuji-categories-header {
+    display: flex;
+    justify-content: space-around;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    height: 80px;
+    padding: 5px 0;
+}
+
+/* カテゴリ全体のラッパー（横並び、右から左へ） */
+.omikuji-categories-wrapper {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-start;
+    gap: 5px;
+    width: 100%;
+    height: 100%;
+    padding: 10px 15px 10px 15px;
+    box-sizing: border-box;
+}
+
+/* カテゴリ名の行（上部） */
+.omikuji-names-row {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: center;
+    gap: 15px;
+    width: 100%;
+    padding: 0 15px;
+    box-sizing: border-box;
+    margin-bottom: 5px;
+    overflow: hidden;
+}
+
+/* 概要の行（下部） */
+.omikuji-texts-row {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: center;
+    gap: 15px;
+    width: 100%;
+    flex: 1;
+    padding: 0 15px;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.category-name {
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: #8b0000;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    width: 70px;
+    text-align: center;
+}
+
+.category-text {
+    font-size: 0.65rem;
+    color: #444;
+    line-height: 1.4;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    width: 70px;
+    text-align: left;
+}
+
+.omikuji-instruction {
+    font-family: var(--font-gothic);
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+}
+
+.modal-close-btn {
+    padding: 0.8rem 2rem;
+    background: linear-gradient(180deg, var(--primary-gold) 0%, #b8962e 100%);
+    border: none;
+    border-radius: 6px;
+    color: var(--bg-darker);
+    font-family: var(--font-gothic);
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.modal-close-btn:hover {
+    background: linear-gradient(180deg, var(--primary-gold-light) 0%, var(--primary-gold) 100%);
+    box-shadow: 0 0 15px var(--shadow-glow);
+}
+
+/* ==========================================
+   画像操作コントロール
+   ========================================== */
+.image-controls {
+    position: fixed;
+    bottom: 180px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.8rem;
+    background: var(--bg-panel);
+    border: 1px solid var(--primary-gold);
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    z-index: 100;
+}
+
+.control-btn {
+    padding: 0.5rem 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-gold);
+    border-radius: 4px;
+    color: var(--text-light);
+    font-family: var(--font-gothic);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.control-btn:hover {
+    background: rgba(212, 175, 55, 0.2);
+    border-color: var(--primary-gold);
+}
+
+.control-btn.danger:hover {
+    background: rgba(179, 58, 58, 0.2);
+    border-color: var(--primary-red);
+    color: var(--primary-red-light);
+}
+
+/* ==========================================
+   レスポンシブ
+   ========================================== */
+@media (max-width: 768px) {
+    .header h1 {
+        font-size: 1.1rem;
+        letter-spacing: 0.05em;
+        white-space: nowrap;
+    }
+
+    .app-container {
+        min-height: auto;
+        height: auto;
+    }
+
+    .background-container {
+        min-height: 50vh;
+    }
+
+    .dialogue-box {
+        width: 95%;
+        padding: 1rem 1.2rem;
+        bottom: 60px;
+    }
+
+    .dialogue-text {
+        font-size: 1rem;
+    }
+
+    /* ナビゲーション：縦並びに */
+    .navigation {
+        flex-direction: column;
+        gap: 0.5rem;
+        padding: 0.5rem;
+    }
+
+    /* 左右ボタンを横並びに */
+    .navigation {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        grid-template-rows: auto auto;
+        gap: 0.3rem 0.5rem;
+        align-items: center;
+    }
+
+    .nav-btn:first-of-type {
+        grid-column: 1;
+        grid-row: 1;
+        justify-self: start;
+    }
+
+    .location-indicator {
+        grid-column: 2;
+        grid-row: 1;
+    }
+
+    .nav-btn:last-of-type {
+        grid-column: 3;
+        grid-row: 1;
+        justify-self: end;
+    }
+
+    /* おみくじボタンは2行目中央に */
+    #locationOmikujiBtn {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        justify-self: center;
+    }
+
+    .nav-btn {
+        padding: 0.5rem 0.8rem;
+        font-size: 0.8rem;
+    }
+
+    .location-indicator {
+        font-size: 0.85rem;
+        gap: 0.3rem;
+    }
+
+    .location-name {
+        font-size: 0.85rem;
+    }
+
+    .input-group {
+        flex-wrap: wrap;
+    }
+
+    .name-input {
+        width: 100%;
+    }
+
+    .text-input {
+        width: 100%;
+    }
+
+    .toolbar {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        padding-bottom: 80px;
+    }
+
+    .tool-btn {
+        padding: 0.6rem 1rem;
+    }
+
+    .tool-icon {
+        font-size: 1.5rem;
+    }
+}
