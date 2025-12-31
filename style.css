@@ -878,7 +878,6 @@ body {
     .omikuji-box {
         width: 260px;
         height: 420px;
-        overflow: hidden;
     }
 
     .omikuji-fortune {
