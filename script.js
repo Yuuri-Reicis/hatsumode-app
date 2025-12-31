@@ -628,22 +628,22 @@ async function saveStill() {
             }
         });
 
-        // Blobとしてダウンロード（より信頼性が高い）
-        canvas.toBlob((blob) => {
-            if (blob) {
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.download = `hatsumode_${LOCATIONS[currentLocationIndex].id}_${Date.now()}.png`;
-                link.href = url;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-                console.log('スチルを保存しました！');
-            } else {
-                throw new Error('Blob生成に失敗');
-            }
-        }, 'image/png');
+        // 新しいタブで画像を開く（右クリック保存用）
+        const dataUrl = canvas.toDataURL('image/png');
+        const newTab = window.open();
+        if (newTab) {
+            newTab.document.write(`
+                <html>
+                <head><title>スチル保存 - ${LOCATIONS[currentLocationIndex].name}</title></head>
+                <body style="margin:0; background:#1a1520; display:flex; justify-content:center; align-items:center; min-height:100vh;">
+                    <img src="${dataUrl}" style="max-width:100%; max-height:100vh;">
+                </body>
+                </html>
+            `);
+            console.log('スチルを新しいタブで開きました！右クリックで保存できます。');
+        } else {
+            alert('ポップアップがブロックされました。ブラウザの設定でポップアップを許可してください。');
+        }
 
     } catch (error) {
         console.error('スチル保存エラー:', error);
