@@ -614,10 +614,18 @@ async function saveStill() {
         const canvas = await html2canvas(container, {
             useCORS: true,
             allowTaint: true,
-            backgroundColor: '#1a1520',
+            backgroundColor: null,
             scale: 2,
             logging: false,
-            imageTimeout: 0
+            imageTimeout: 0,
+            onclone: (clonedDoc) => {
+                // クローンされたDOMでセリフボックスを強制的に不透明化
+                const clonedDialogue = clonedDoc.querySelector('.dialogue-box');
+                if (clonedDialogue && clonedDialogue.classList.contains('visible')) {
+                    clonedDialogue.style.background = 'rgb(20, 15, 35)';
+                    clonedDialogue.style.backdropFilter = 'none';
+                }
+            }
         });
 
         // Blobとしてダウンロード（より信頼性が高い）
