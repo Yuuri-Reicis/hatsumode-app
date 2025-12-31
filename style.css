@@ -764,7 +764,18 @@ body {
     }
 
     .background-container {
-        min-height: 50vh;
+        min-height: 60vh;
+    }
+
+    /* メニュー閉じた時に背景を全画面に */
+    .collapsible-menu.collapsed+.main-view .background-container,
+    .collapsible-menu.collapsed~.main-view .background-container {
+        min-height: 85vh;
+    }
+
+    /* ヘッダーを小さく */
+    .header {
+        padding: 0.5rem 1rem;
     }
 
     .dialogue-box {
