@@ -856,4 +856,49 @@ body {
     .tool-icon {
         font-size: 1.5rem;
     }
+
+    /* おみくじモバイル対応 */
+    .omikuji-modal {
+        padding: 1rem;
+        max-width: 95%;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .omikuji-type-selector {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .type-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+
+    .omikuji-box {
+        width: 260px;
+        height: 420px;
+    }
+
+    .omikuji-fortune {
+        font-size: 2.5rem;
+        margin-top: 80px;
+        height: 100px;
+    }
+
+    .category-name {
+        font-size: 0.7rem;
+        width: 40px;
+    }
+
+    .category-text {
+        font-size: 0.55rem;
+        width: 40px;
+    }
+
+    .omikuji-names-row,
+    .omikuji-texts-row {
+        gap: 2px;
+        padding: 0 5px;
+    }
 }
