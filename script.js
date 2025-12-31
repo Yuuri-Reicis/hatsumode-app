@@ -553,13 +553,24 @@ function drawOmikuji() {
 
     // 運勢を表示（インラインスタイルで位置調整）
     elements.omikujiFortune.textContent = result.fortune;
-    elements.omikujiFortune.style.cssText = 'margin-top:145px;height:100px;display:flex;align-items:center;justify-content:center;';
+
+    // モバイル判定
+    const isMobile = window.innerWidth <= 768;
+    const marginTop = isMobile ? '60px' : '145px';
+    const fortuneHeight = isMobile ? '80px' : '100px';
+    const categoryWidth = isMobile ? '35px' : '50px';
+    const categoryNameSize = isMobile ? '0.6rem' : '1rem';
+    const categoryTextSize = isMobile ? '0.45rem' : '0.85rem';
+    const rowGap = isMobile ? '1px' : '2px';
+    const rowPadding = isMobile ? '0 3px' : '0 8px';
+
+    elements.omikujiFortune.style.cssText = `margin-top:${marginTop};height:${fortuneHeight};display:flex;align-items:center;justify-content:center;`;
 
     // カテゴリごとのメッセージを生成（インラインスタイルで適用）
-    const namesRowStyle = 'display:flex;flex-direction:row-reverse;justify-content:center;gap:2px;width:100%;padding:0 8px;box-sizing:border-box;margin-bottom:5px;overflow:hidden;transform:translateX(-8px);';
-    const textsRowStyle = 'display:flex;flex-direction:row-reverse;justify-content:center;gap:2px;width:100%;flex:1;padding:0 8px;box-sizing:border-box;overflow:hidden;transform:translateX(-8px);';
-    const categoryNameStyle = 'font-weight:700;font-size:1rem;color:#8b0000;writing-mode:vertical-rl;text-orientation:mixed;width:50px;text-align:center;';
-    const categoryTextStyle = 'font-size:0.85rem;color:#444;line-height:1.4;writing-mode:vertical-rl;text-orientation:mixed;width:50px;text-align:left;';
+    const namesRowStyle = `display:flex;flex-direction:row-reverse;justify-content:center;gap:${rowGap};width:100%;padding:${rowPadding};box-sizing:border-box;margin-bottom:5px;overflow:hidden;`;
+    const textsRowStyle = `display:flex;flex-direction:row-reverse;justify-content:center;gap:${rowGap};width:100%;flex:1;padding:${rowPadding};box-sizing:border-box;overflow:hidden;`;
+    const categoryNameStyle = `font-weight:700;font-size:${categoryNameSize};color:#8b0000;writing-mode:vertical-rl;text-orientation:mixed;width:${categoryWidth};text-align:center;`;
+    const categoryTextStyle = `font-size:${categoryTextSize};color:#444;line-height:1.4;writing-mode:vertical-rl;text-orientation:mixed;width:${categoryWidth};text-align:left;overflow:hidden;`;
 
     // カテゴリ名の行
     let messageHtml = `<div class="omikuji-names-row" style="${namesRowStyle}">`;
