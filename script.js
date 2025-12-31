@@ -589,18 +589,28 @@ function closeOmikuji() {
 // スチル保存機能
 // ==========================================
 async function saveStill() {
-    // 一時的にコントロールを非表示
+    // 一時的にコントロールとナビゲーションを非表示
     const controlsWasVisible = elements.imageControls.style.display !== 'none';
     elements.imageControls.style.display = 'none';
     placedImages.forEach(img => img.classList.remove('selected'));
 
+    // ナビゲーションを非表示
+    const navigation = document.querySelector('.navigation');
+    if (navigation) navigation.style.display = 'none';
+
+    // セリフボックスを完全不透明に（キャプチャ用）
+    const dialogueBox = elements.dialogueBox;
+    if (dialogueBox.classList.contains('visible')) {
+        dialogueBox.style.cssText += 'background: rgb(15, 10, 25) !important; backdrop-filter: none !important;';
+    }
+
     // 少し待ってからキャプチャ
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 200));
 
     try {
         const container = elements.backgroundContainer;
 
-        // html2canvasでキャプチャ
+        // html2canvasでキャプチャ（コンテナ全体）
         const canvas = await html2canvas(container, {
             useCORS: true,
             allowTaint: true,
@@ -646,6 +656,12 @@ async function saveStill() {
             console.error('フォールバックも失敗:', fallbackError);
             alert('保存に失敗しました。\nLive Serverなどのローカルサーバーで開いてお試しください。');
         }
+    } finally {
+        // ナビゲーションとセリフを元に戻す
+        const navigation = document.querySelector('.navigation');
+        if (navigation) navigation.style.display = '';
+        elements.dialogueBox.style.background = '';
+        elements.dialogueBox.style.backdropFilter = '';
     }
 }
 
